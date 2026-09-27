@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import re
 import sys
 from pathlib import Path
@@ -146,10 +148,7 @@ def main():
     # --------------------------------------------------------
 
     if len(sys.argv) not in (2, 3):
-        print(
-            "Uso:\n"
-            "  python ./qik-pdftoxlsx archivo.pdf [output.xlsx]"
-        )
+        print("Usage: ./convert.py [input] [output]")
         sys.exit(1)
 
     input_path = Path(sys.argv[1])
@@ -297,4 +296,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    
