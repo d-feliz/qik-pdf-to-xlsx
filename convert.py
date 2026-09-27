@@ -45,7 +45,8 @@ def parse_amount(value):
     if not value:
         return None
 
-    # Invert the sign
+    # Invert the sign.
+    # Negative values become positive and positive values become negative.
     return value if negative else f"-{value}"
 
 
@@ -68,7 +69,12 @@ def extract_transactions(df):
         # Ignore header rows
         if all(
             header in text
-            for header in ["Fecha", "Entrada", "Descripción", "Monto"]
+            for header in [
+                "Fecha",
+                "Entrada",
+                "Descripción",
+                "Monto",
+            ]
         ):
             continue
 
@@ -89,7 +95,7 @@ def extract_transactions(df):
             count=1,
         )
 
-        # Find amount
+        # Find amount at the end of the row
         amount_match = re.search(
             rf"({AMOUNT_PATTERN})\s*$",
             remaining,
@@ -136,28 +142,54 @@ def extract_transactions(df):
 
 def main():
     # --------------------------------------------------------
-    # Validate input
+    # Validate arguments
     # --------------------------------------------------------
 
-    if len(sys.argv) != 2:
+    if len(sys.argv) not in (2, 3):
         print(
             "Uso:\n"
-            "  python3 pdf_to_excel.py archivo.pdf"
+            "  python ./qik-pdftoxlsx archivo.pdf [output.xlsx]"
         )
         sys.exit(1)
 
     input_path = Path(sys.argv[1])
 
     if not input_path.exists():
-        print(f"Error: no se encontró el archivo '{input_path}'")
+        print(
+            f"Error: no se encontró el archivo "
+            f"'{input_path}'"
+        )
+        sys.exit(1)
+
+    if not input_path.is_file():
+        print(
+            f"Error: '{input_path}' no es un archivo."
+        )
         sys.exit(1)
 
     if input_path.suffix.lower() != ".pdf":
-        print("Error: el archivo debe ser un PDF.")
+        print(
+            "Error: el archivo de entrada debe ser un PDF."
+        )
         sys.exit(1)
 
-    # Output uses the same filename, but .xlsx
-    output_path = input_path.with_suffix(".xlsx")
+    # --------------------------------------------------------
+    # Determine output path
+    # --------------------------------------------------------
+
+    if len(sys.argv) == 3:
+        output_path = Path(sys.argv[2])
+    else:
+        # By default, create the XLSX next to the script,
+        # using the same filename as the input PDF.
+        script_dir = Path(__file__).resolve().parent
+        output_path = script_dir / f"{input_path.stem}.xlsx"
+
+    # Create output directory if necessary
+    output_path.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
 
     # --------------------------------------------------------
     # Extract tables
@@ -216,7 +248,7 @@ def main():
 
     # Remove duplicates
     result = result.drop_duplicates(
-        ignore_index=True
+        ignore_index=True,
     )
 
     # --------------------------------------------------------
@@ -248,10 +280,6 @@ def main():
             for cell in worksheet[column][1:]:
                 cell.number_format = "DD/MM/YYYY"
 
-        # Amount formatting
-        for cell in worksheet["D"][1:]:
-            cell.number_format = '#,##0.00'
-
         # Freeze header
         worksheet.freeze_panes = "A2"
 
@@ -269,5 +297,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
+    
